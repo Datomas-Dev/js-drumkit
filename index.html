@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Extended JS Drum Kit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- This is just the button that you click to stop and start the music. -->
+  <div class="riffButton">Rock On</div>
+  
+  
+  <!-- In this version, the "keys" div is empty, because I'm using a function that generates the inner divs dynamically, based on the audio
+       elements with the "data-key" attribute.
+   -->
+  <div class="keys">
+  </div>
+  
+  <!-- In this version, the <audio> tags are a little more important. Their presence on the page actually determines what available keys can be played and their sounds. You can add more here, and they will dynamically be added when the page loads. To add to this list, simply add an audio element, set the "data-key" attribute to the key code of the character you want (Find a key's code quickly here: https://keycode.info/), and link it to an audio file with the "src" attribute. The sound will be named on the page by its filename.
+   -->
+  <audio data-key="65" src="sounds/clap.wav"></audio>
+  <audio data-key="83" src="sounds/hihat.wav"></audio>
+  <audio data-key="68" src="sounds/kick.wav"></audio>
+  <audio data-key="70" src="sounds/openhat.wav"></audio>
+  <audio data-key="71" src="sounds/boom.wav"></audio>
+  <audio data-key="72" src="sounds/ride.wav"></audio>
+  <audio data-key="74" src="sounds/snare.wav"></audio>
+  <audio data-key="75" src="sounds/tom.wav"></audio>
+  <audio data-key="76" src="sounds/tink.wav"></audio>
+  
+  <audio data-key="90" src="sounds/oof.wav"></audio>
+  <audio data-key="88" src="sounds/bruh.wav"></audio>
+  
+  <!-- This is the list of riffs that can be played by pressing the "Rock On" button. This list is also gone through dynamically, so adding any more audio elements with a class of "riff" will add it to a collection in the JavaScript and allow it to be played through the button as well. See this in action in the playRiff() function.
+   -->
+  <audio class="riff" src="riffs/riff1.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff2.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff3.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff4.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff5.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff6.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff7.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff8.mp3" loop></audio>
+  <audio class="riff" src="riffs/riff9.mp3" loop></audio>
+
+<script>
+  // Select all audio elements on the page that contain the "data-key" attribute, then loop through each element and create a label on the page for them
+  const sounds = document.querySelectorAll("audio[data-key]").forEach(buildKeyLabel);
+  const keys = document.querySelectorAll(".key");
+  
+  const riffs = document.getElementsByClassName("riff");
+  const riffButton = document.getElementsByClassName("riffButton")[0];
+  
+  // Create a variable to track if a song is playing, and another to track which one
+  var rockingOn = false;
+  var riffCycle = 0;
+  
+  
+  window.addEventListener("keydown", playSound);
+  window.addEventListener("keyup", removeTransition);
+  riffButton.addEventListener("click",playRiff);
+  keys.forEach(key => key.addEventListener("keyup", removeTransition));
+  
+  /*=============================================
+  =================FUNCTIONS
+  =============================================*/
+  
+  /*
+      buildKeyLabel():
+      This function will automatically generate the divs that show which keys can be pressed
+      to play sounds, based on the <audio> elements and their attributes alone. 'audio' is the
+      array item that was passed through by the forEach() method.
+  */
+  function buildKeyLabel(audio) {
+    // Create a variable we'll use to build the string. We initialize it using the new way of concatenating strings we learned. What we add to it here is the key code, which will link it to the key on the keyboard and allow the element's sound to be played.
+    var string = `<div data-key="${audio.dataset.key}" class="key">`;
+    
+    /* "dataset" is a property of HTML element objects that allows you to access their custom attributes
+       that you wrote as "data-attributename". Any dashes after the first convert into camelCase.
+       For example: "data-tracker" becomes "object.dataset.tracker", and "data-my-own-value" becomes "object.dataset.myOwnValue".
+       Learn more here: https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes
+    */
+    
+    // This line gets that key code and uses the String method .fromCharCode to get the actual character to display it for the user.
+    string += `<kbd>${String.fromCharCode(audio.dataset.key)}</kbd>`;
+    
+    /* Use a regular expression to convert the audio element's src attibute into a label for the sound. The .src attribute
+       should be the full path to the audio file. The regular expression strips out the name of the file without the
+       extention, by matching:
+       
+       - \w+ : any one or more word characters (a number or letter from A-Z)
+       - (?=\.\w+) :
+       - and a "." followed by any number of characters (representing the file extention), at the end of the string
+    */
+    var match = audio.src.match(/\w+(?=\.\w+)/);
+    
+    // Add the final regex match to the string
+    string += `<span class="sound">${match[match.length-1]}</span></div>`;
+    
+    // Add our element to the page by adding to .innerHTML
+    document.querySelector(".keys").innerHTML += string;
+    
+  }
+  
+  function playSound(e) {
+    const audio = document.querySelector(`audio[data-key="${e.keyCode}"]`);
+    const key = document.querySelector(`.key[data-key="${e.keyCode}"]`);
+    if(!audio) return;
+    
+    if(!key.classList.contains("playing")) {
+      audio.currentTime = 0;
+      audio.play();
+      
+      key.classList.add("playing");
+    }
+  }
+  
+  function removeTransition(e) {
+    const key = document.querySelector(`.key[data-key="${e.keyCode}"]`);
+    key.classList.remove("playing");
+  }
+  
+  /* playRiff()
+     Plays through riffs in a cycle. 
+  */
+  function playRiff(e) {
+    //Sets rockingOn to the opposite of its current value. For booleans, this is like turning a light switch on and off. If it's true, its opposite is false, and vice versa. This statement is good for switching a boolean value back and forth.
+    rockingOn = !rockingOn;
+    
+    //Test for rockingOn's value, and perform the approriate action.
+    if(rockingOn) {
+      riff = riffs[riffCycle];
+      
+      riffButton.textContent = "Rock Off";
+      riffButton.classList.add("rockon");
+      riff.currentTime = 0;
+      riff.play();
+    }
+    else {
+      riffButton.textContent = "Rock On";
+      riffButton.classList.remove("rockon");
+      riff.pause();
+      // Add to the riffCycle variable. If it reaches a number more than the kength if the array, set it to 0.
+      riffCycle++;
+      if(riffCycle >= riffs.length) riffCycle = 0;
+    }
+    console.log(riffCycle);
+  }
+</script>
+
+</body>
+</html>
